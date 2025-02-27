@@ -11,16 +11,17 @@ const httpsAgent = new https.Agent({
     keepAlive: true
 });
 
-// Updated CORS configuration
-app.use(cors({
-    origin: '*',  // Allow all origins in development
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['Access-Control-Allow-Origin'],
-    credentials: false  // Changed to false since we're using '*'
-}));
+// Enable CORS for all routes
+app.use(cors());
 
-// Remove the separate options middleware since we're handling all origins
+// Enable preflight requests for all routes
+app.options('*', cors());
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'healthy' });
+});
+
 app.get('/proxy/:environment/:receiptNumber', async (req, res) => {
     const { environment, receiptNumber } = req.params;
     const url = `${decodeURIComponent(environment)}${receiptNumber}`;
@@ -28,7 +29,7 @@ app.get('/proxy/:environment/:receiptNumber', async (req, res) => {
     console.log('Received request:', {
         url,
         auth: req.headers.authorization ? 'Present' : 'Missing',
-        origin: req.headers.origin
+        origin: req.headers.origin || 'No origin'
     });
 
     try {
@@ -41,20 +42,29 @@ app.get('/proxy/:environment/:receiptNumber', async (req, res) => {
             agent: httpsAgent
         });
 
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Upstream API Error:', {
+                status: response.status,
+                statusText: response.statusText,
+                body: errorText
+            });
+            return res.status(response.status).json({
+                error: `API Error: ${response.status} ${response.statusText}`,
+                details: errorText
+            });
+        }
+
         const data = await response.json();
         res.json(data);
     } catch (error) {
         console.error('Request failed:', error);
         res.status(500).json({ 
             error: 'Failed to process request',
-            details: error.message
+            details: error.message,
+            code: error.code || 'UNKNOWN'
         });
     }
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-    res.json({ status: 'healthy' });
 });
 
 app.listen(port, () => {

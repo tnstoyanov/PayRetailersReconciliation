@@ -41,7 +41,7 @@
     <script>
         const config = {
             apiUrl: window.location.hostname === 'tnstoyanov.github.io'
-                ? 'https://payretailers-proxy.onrender.com'
+                ? 'https://payretailersreconciliation.onrender.com'
                 : 'http://localhost:3000'
         };
     
@@ -69,13 +69,16 @@
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Basic ${credentials}`
-                    },
-                    mode: 'cors',
-                    credentials: 'omit'  // Changed from 'include' to 'omit'
+                    }
                 });
     
                 if (!response.ok) {
                     const errorText = await response.text();
+                    console.error('Server Error:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                        body: errorText
+                    });
                     throw new Error(`HTTP error! status: ${response.status}\n${errorText}`);
                 }
     
