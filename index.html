@@ -91,7 +91,7 @@
                 statusSummary.innerHTML = `The latest status is <span style="color: red;">${data.status}</span>, ` +
                     `the payment method name is <span style="color: red;">${data.paymentMethod.name}</span>, ` +
                     `the type is <span style="color: red;">${data.paymentMethod.type}</span>, ` +
-                    `and the payment method tag is <span style="color: red;">${data.paymentMethod.paymentMethodTag}</span>.`;
+                    `and the payment method tag is <span style="color: red;">${data.paymentMethod.paymentMethodTag || 'NOT LISTED'}</span>.`;
     
                 responseDiv.innerHTML = JSON.stringify(data, null, 2);
                 responseDiv.className = 'success';
