@@ -6,51 +6,32 @@ import https from 'https';
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Create HTTPS agent with longer timeout and keep-alive
 const httpsAgent = new https.Agent({
     timeout: 30000,
     keepAlive: true
 });
 
-// CORS configuration for both local and production
+// Updated CORS configuration
 app.use(cors({
-    origin: [
-        'https://tnstoyanov.github.io',
-        'http://localhost:5500',
-        'http://127.0.0.1:5500'
-    ],
+    origin: '*',  // Allow all origins in development
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true
+    exposedHeaders: ['Access-Control-Allow-Origin'],
+    credentials: false  // Changed to false since we're using '*'
 }));
 
-// Enable preflight for all routes
-app.options('*', cors());
-
+// Remove the separate options middleware since we're handling all origins
 app.get('/proxy/:environment/:receiptNumber', async (req, res) => {
     const { environment, receiptNumber } = req.params;
     const url = `${decodeURIComponent(environment)}${receiptNumber}`;
 
     console.log('Received request:', {
         url,
-        auth: req.headers.authorization ? 'Present' : 'Missing'
+        auth: req.headers.authorization ? 'Present' : 'Missing',
+        origin: req.headers.origin
     });
 
     try {
-        // Test DNS resolution first
-        const dns = await import('dns');
-        const { hostname } = new URL(url);
-        
-        try {
-            await dns.promises.lookup(hostname);
-        } catch (dnsError) {
-            console.error('DNS lookup failed:', dnsError);
-            return res.status(502).json({
-                error: 'DNS resolution failed',
-                details: `Cannot resolve hostname: ${hostname}`
-            });
-        }
-
         const response = await fetch(url, {
             method: 'GET',
             headers: {
@@ -60,46 +41,22 @@ app.get('/proxy/:environment/:receiptNumber', async (req, res) => {
             agent: httpsAgent
         });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API Error:', {
-                status: response.status,
-                statusText: response.statusText,
-                body: errorText
-            });
-            return res.status(response.status).json({
-                error: `API Error: ${response.status} ${response.statusText}`,
-                details: errorText
-            });
-        }
-
         const data = await response.json();
-        console.log('Successful response for:', receiptNumber);
         res.json(data);
     } catch (error) {
-        console.error('Request failed:', {
-            message: error.message,
-            code: error.code,
-            stack: error.stack
-        });
+        console.error('Request failed:', error);
         res.status(500).json({ 
             error: 'Failed to process request',
-            details: error.message,
-            code: error.code || 'UNKNOWN'
+            details: error.message
         });
     }
 });
 
-// Health check endpoint for Render
+// Health check endpoint
 app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'healthy' });
+    res.json({ status: 'healthy' });
 });
 
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
-    console.log('CORS enabled for:', [
-        'https://tnstoyanov.github.io',
-        'http://localhost:5500',
-        'http://127.0.0.1:5500'
-    ]);
 });
