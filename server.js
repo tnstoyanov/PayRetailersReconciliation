@@ -1,13 +1,24 @@
 import express from 'express';
 import fetch from 'node-fetch';
 import cors from 'cors';
+import https from 'https';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Update CORS configuration to allow GitHub Pages domain
+// Create HTTPS agent with longer timeout and keep-alive
+const httpsAgent = new https.Agent({
+    timeout: 30000,
+    keepAlive: true
+});
+
+// CORS configuration for both local and production
 app.use(cors({
-    origin: ['https://tnstoyanov.github.io', 'http://localhost:5500', 'http://127.0.0.1:5500'],
+    origin: [
+        'https://tnstoyanov.github.io',
+        'http://localhost:5500',
+        'http://127.0.0.1:5500'
+    ],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
@@ -63,9 +74,14 @@ app.get('/proxy/:environment/:receiptNumber', async (req, res) => {
         }
 
         const data = await response.json();
+        console.log('Successful response for:', receiptNumber);
         res.json(data);
     } catch (error) {
-        console.error('Request failed:', error);
+        console.error('Request failed:', {
+            message: error.message,
+            code: error.code,
+            stack: error.stack
+        });
         res.status(500).json({ 
             error: 'Failed to process request',
             details: error.message,
@@ -74,6 +90,16 @@ app.get('/proxy/:environment/:receiptNumber', async (req, res) => {
     }
 });
 
+// Health check endpoint for Render
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'healthy' });
+});
+
 app.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
+    console.log('CORS enabled for:', [
+        'https://tnstoyanov.github.io',
+        'http://localhost:5500',
+        'http://127.0.0.1:5500'
+    ]);
 });

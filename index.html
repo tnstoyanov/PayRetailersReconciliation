@@ -42,10 +42,10 @@
         // Configuration object with environment-specific settings
         const config = {
             apiUrl: window.location.hostname === 'tnstoyanov.github.io'
-                ? 'https://your-deployed-server.herokuapp.com'  // Replace with your actual deployed server URL
+                ? 'https://payretailers-proxy.onrender.com'  // Replace with your Render.com URL
                 : 'http://localhost:3000'
         };
-    
+
         document.getElementById('transactionForm').addEventListener('submit', async function (event) {
             event.preventDefault();
             const responseDiv = document.getElementById('response');
@@ -53,47 +53,50 @@
             responseDiv.innerHTML = 'Loading...';
             responseDiv.className = '';
             statusSummary.innerHTML = '';
-    
+
             try {
                 const environment = document.getElementById('environment').value;
                 const receiptNumber = document.getElementById('receiptNumber').value;
                 const username = document.getElementById('apiUsername').value;
                 const password = document.getElementById('apiPassword').value;
-    
+
                 const credentials = btoa(`${username}:${password}`);
                 const url = `${config.apiUrl}/proxy/${encodeURIComponent(environment)}/${receiptNumber}`;
-    
+
                 console.log('Sending request to:', url);
-    
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Basic ${credentials}`
-                    },
-                    mode: 'cors',
-                    credentials: 'same-origin'
-                });
-    
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                console.log('Using credentials:', username);
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Basic ${credentials}`
+                        },
+                        mode: 'cors'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+
+                    // Update status summary
+                    statusSummary.innerHTML = `The latest status is ${data.status}, ` +
+                        `the payment method name is ${data.paymentMethod.name}, ` +
+                        `the type is ${data.paymentMethod.type}, ` +
+                        `and the payment method tag is ${data.paymentMethod['paymentMethod.type']}.`;
+
+                    responseDiv.innerHTML = JSON.stringify(data, null, 2);
+                    responseDiv.className = 'success';
+                } catch (networkError) {
+                    throw new Error(`Server unavailable. Please try again later.\n${networkError.message}`);
                 }
-    
-                const data = await response.json();
-                
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-    
-                // Update status summary
-                statusSummary.innerHTML = `The latest status is ${data.status}, ` +
-                    `the payment method name is ${data.paymentMethod.name}, ` +
-                    `the type is ${data.paymentMethod.type}, ` +
-                    `and the payment method tag is ${data.paymentMethod['paymentMethod.type']}.`;
-    
-                // Show full response
-                responseDiv.innerHTML = JSON.stringify(data, null, 2);
-                responseDiv.className = 'success';
             } catch (error) {
                 statusSummary.innerHTML = 'Error occurred while fetching status';
                 responseDiv.innerHTML = `Error: ${error.message}`;
