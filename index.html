@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Lookup</title>
+    <link rel="stylesheet" href="styles.css">
+
+<body>
+    <div class="header">
+        <img src="https://files.readme.io/dd037d3-logo-pay-retailers.svg" alt="PayRetailers Logo" class="logo">
+    </div>
+    <h1 class="title">PayRetailers Transaction Status Lookup</h1>
+    <form id="transactionForm">
+        <div>
+            <label for="environment">Select an environment:</label>
+            <select id="environment" name="environment" required>
+                <option value="https://api.gateway.payretailers.com/v2/transactions/">Production</option>
+                <option value="https://api-sandbox.payretailers.com/payments/v2/transactions/">Sandbox</option>
+            </select>
+        </div>
+        <div>
+            <label for="apiUsername">API Username:</label>
+            <input type="text" id="apiUsername" name="apiUsername" required>
+        </div>
+        <div>
+            <label for="apiPassword">API Password:</label>
+            <input type="password" id="apiPassword" name="apiPassword" required>
+        </div>
+        <div>
+            <label for="receiptNumber">Receipt Number (UID):</label>
+            <input type="text" id="receiptNumber" name="receiptNumber" required>
+        </div>
+        <button type="submit" class="submit-button">Submit</button>
+    </form>
+
+    <p id="statusSummary"></p>
+    <div id="response"></div>
+
+    <script>
+        document.getElementById('transactionForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const responseDiv = document.getElementById('response');
+            const statusSummary = document.getElementById('statusSummary');
+            responseDiv.innerHTML = 'Loading...';
+            responseDiv.className = '';
+            statusSummary.innerHTML = '';
+
+            try {
+                const environment = document.getElementById('environment').value;
+                const receiptNumber = document.getElementById('receiptNumber').value;
+                const username = document.getElementById('apiUsername').value;
+                const password = document.getElementById('apiPassword').value;
+
+                const credentials = btoa(`${username}:${password}`);
+                const url = `http://localhost:3000/proxy/${encodeURIComponent(environment)}/${receiptNumber}`;
+
+                console.log('Sending request to:', url);
+                console.log('Using credentials:', username);
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Basic ${credentials}`
+                    },
+                    mode: 'cors'
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}\n${errorText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(`${data.error}\n${data.details || ''}`);
+                }
+
+                // Add status summary
+                statusSummary.innerHTML = `The latest status is <span style="color: red;">${data.status}</span>, ` +
+                    `the payment method name is <span style="color: red;">${data.paymentMethod.name}</span>, ` +
+                    `the type is <span style="color: red;">${data.paymentMethod.type}</span>, ` +
+                    `and the payment method tag is <span style="color: red;">${data.paymentMethod.paymentMethodTag || 'NOT LISTED'}</span>.`;
+
+                responseDiv.innerHTML = JSON.stringify(data, null, 2);
+                responseDiv.className = 'success';
+                console.log('Response:', data);
+            } catch (error) {
+                statusSummary.innerHTML = 'Error occurred while fetching status';
+                responseDiv.innerHTML = `Error: ${error.message}`;
+                responseDiv.className = 'error';
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+
+</html>
