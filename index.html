@@ -88,10 +88,10 @@
                     throw new Error(`${data.error}\n${data.details || ''}`);
                 }
     
-                statusSummary.innerHTML = `The latest status is ${data.status}, ` +
-                    `the payment method name is ${data.paymentMethod.name}, ` +
-                    `the type is ${data.paymentMethod.type}, ` +
-                    `and the payment method tag is ${data.paymentMethod['paymentMethod.type']}.`;
+                statusSummary.innerHTML = `The latest status is <span style="color: red;">${data.status}</span>, ` +
+                    `the payment method name is <span style="color: red;">${data.paymentMethod.name}</span>, ` +
+                    `the type is <span style="color: red;">${data.paymentMethod.type}</span>, ` +
+                    `and the payment method tag is <span style="color: red;">${data.paymentMethod.paymentMethodTag}</span>.`;
     
                 responseDiv.innerHTML = JSON.stringify(data, null, 2);
                 responseDiv.className = 'success';
