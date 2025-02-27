@@ -39,12 +39,11 @@
     <div id="response"></div>
 
     <script>
-        // Add this configuration object at the start of your script
+        // Configuration object with environment-specific settings
         const config = {
-            // Change this to your deployed server URL when in production
-            apiUrl: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                ? 'http://localhost:3000'
-                : 'https://your-deployed-server.com' // Replace with your deployed server URL
+            apiUrl: window.location.hostname === 'tnstoyanov.github.io'
+                ? 'https://your-deployed-server.herokuapp.com'  // Replace with your actual deployed server URL
+                : 'http://localhost:3000'
         };
     
         document.getElementById('transactionForm').addEventListener('submit', async function (event) {
@@ -65,23 +64,36 @@
                 const url = `${config.apiUrl}/proxy/${encodeURIComponent(environment)}/${receiptNumber}`;
     
                 console.log('Sending request to:', url);
-                console.log('Using credentials:', username);
     
-                // Add error handling for server unavailability
-                try {
-                    const response = await fetch(url, {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Basic ${credentials}`
-                        },
-                        mode: 'cors'
-                    });
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Basic ${credentials}`
+                    },
+                    mode: 'cors',
+                    credentials: 'same-origin'
+                });
     
-                    // ... rest of your existing code ...
-                } catch (networkError) {
-                    throw new Error(`Server unavailable. If you're using GitHub Pages, please ensure the backend server is deployed and accessible.\n${networkError.message}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+    
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+    
+                // Update status summary
+                statusSummary.innerHTML = `The latest status is ${data.status}, ` +
+                    `the payment method name is ${data.paymentMethod.name}, ` +
+                    `the type is ${data.paymentMethod.type}, ` +
+                    `and the payment method tag is ${data.paymentMethod['paymentMethod.type']}.`;
+    
+                // Show full response
+                responseDiv.innerHTML = JSON.stringify(data, null, 2);
+                responseDiv.className = 'success';
             } catch (error) {
                 statusSummary.innerHTML = 'Error occurred while fetching status';
                 responseDiv.innerHTML = `Error: ${error.message}`;

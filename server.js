@@ -7,14 +7,14 @@ const port = process.env.PORT || 3000;
 
 // Update CORS configuration to allow GitHub Pages domain
 app.use(cors({
-    origin: [
-        'http://localhost:5500',
-        'http://127.0.0.1:5500',
-        'https://tnstoyanov.github.io'
-    ],
+    origin: ['https://tnstoyanov.github.io', 'http://localhost:5500', 'http://127.0.0.1:5500'],
     methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
 }));
+
+// Enable preflight for all routes
+app.options('*', cors());
 
 app.get('/proxy/:environment/:receiptNumber', async (req, res) => {
     const { environment, receiptNumber } = req.params;
