@@ -1,20 +1,17 @@
 import express from 'express';
 import fetch from 'node-fetch';
 import cors from 'cors';
-import https from 'https';
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-// Create HTTPS agent with longer timeout and keep-alive
-const httpsAgent = new https.Agent({
-    timeout: 30000, // Increase timeout to 30 seconds
-    keepAlive: true,
-    rejectUnauthorized: false // Only for testing, remove in production
-});
-
+// Update CORS configuration to allow GitHub Pages domain
 app.use(cors({
-    origin: ['http://127.0.0.1:5500', 'http://localhost:5500', 'null'],
+    origin: [
+        'http://localhost:5500',
+        'http://127.0.0.1:5500',
+        'https://tnstoyanov.github.io'
+    ],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));

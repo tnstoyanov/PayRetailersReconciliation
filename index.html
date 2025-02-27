@@ -39,6 +39,14 @@
     <div id="response"></div>
 
     <script>
+        // Add this configuration object at the start of your script
+        const config = {
+            // Change this to your deployed server URL when in production
+            apiUrl: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? 'http://localhost:3000'
+                : 'https://your-deployed-server.com' // Replace with your deployed server URL
+        };
+    
         document.getElementById('transactionForm').addEventListener('submit', async function (event) {
             event.preventDefault();
             const responseDiv = document.getElementById('response');
@@ -46,48 +54,34 @@
             responseDiv.innerHTML = 'Loading...';
             responseDiv.className = '';
             statusSummary.innerHTML = '';
-
+    
             try {
                 const environment = document.getElementById('environment').value;
                 const receiptNumber = document.getElementById('receiptNumber').value;
                 const username = document.getElementById('apiUsername').value;
                 const password = document.getElementById('apiPassword').value;
-
+    
                 const credentials = btoa(`${username}:${password}`);
-                const url = `http://localhost:3000/proxy/${encodeURIComponent(environment)}/${receiptNumber}`;
-
+                const url = `${config.apiUrl}/proxy/${encodeURIComponent(environment)}/${receiptNumber}`;
+    
                 console.log('Sending request to:', url);
                 console.log('Using credentials:', username);
-
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Basic ${credentials}`
-                    },
-                    mode: 'cors'
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP error! status: ${response.status}\n${errorText}`);
+    
+                // Add error handling for server unavailability
+                try {
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Basic ${credentials}`
+                        },
+                        mode: 'cors'
+                    });
+    
+                    // ... rest of your existing code ...
+                } catch (networkError) {
+                    throw new Error(`Server unavailable. If you're using GitHub Pages, please ensure the backend server is deployed and accessible.\n${networkError.message}`);
                 }
-
-                const data = await response.json();
-
-                if (data.error) {
-                    throw new Error(`${data.error}\n${data.details || ''}`);
-                }
-
-                // Add status summary
-                statusSummary.innerHTML = `The latest status is <span style="color: red;">${data.status}</span>, ` +
-                    `the payment method name is <span style="color: red;">${data.paymentMethod.name}</span>, ` +
-                    `the type is <span style="color: red;">${data.paymentMethod.type}</span>, ` +
-                    `and the payment method tag is <span style="color: red;">${data.paymentMethod.paymentMethodTag || 'NOT LISTED'}</span>.`;
-
-                responseDiv.innerHTML = JSON.stringify(data, null, 2);
-                responseDiv.className = 'success';
-                console.log('Response:', data);
             } catch (error) {
                 statusSummary.innerHTML = 'Error occurred while fetching status';
                 responseDiv.innerHTML = `Error: ${error.message}`;
